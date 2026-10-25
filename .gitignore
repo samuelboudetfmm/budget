@@ -1,0 +1,9 @@
+.env
+.env.*
+node_modules/
+data/
+*.sql
+*.sql.gz
+e2e/node_modules/
+e2e/shots/
+e2e/test-results/
