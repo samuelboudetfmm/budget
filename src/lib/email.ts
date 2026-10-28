@@ -12,6 +12,7 @@ import {
   type EmailExtraction,
 } from "./classify";
 import { log } from "./log";
+import { isPersonalEnding, mentionsPersonalCard } from "./joint";
 
 export function htmlToText(html: string): string {
   return html
@@ -88,7 +89,8 @@ Extrais :
 - total : montant total réellement payé en euros (TTC, frais de port inclus, réductions déduites).
 - items : lignes d'articles avec { label, amount (euros TTC, positif), categoryId }. Regroupe si plus de 40 lignes. Les frais de port vont avec la catégorie majoritaire.
 - mainCategoryId : catégorie principale.
-Réponds uniquement en JSON : {"isPurchase":boolean,"merchant":string|null,"date":string|null,"total":number|null,"mainCategoryId":number|null,"items":[{"label":string,"amount":number,"categoryId":number}]}`,
+- cardLast4 : les 4 derniers chiffres de la carte de paiement si le mail les indique, sinon null.
+Réponds uniquement en JSON : {"isPurchase":boolean,"merchant":string|null,"date":string|null,"total":number|null,"mainCategoryId":number|null,"cardLast4":string|null,"items":[{"label":string,"amount":number,"categoryId":number}]}`,
         },
         {
           role: "user",
@@ -97,11 +99,14 @@ Réponds uniquement en JSON : {"isPurchase":boolean,"merchant":string|null,"date
       ],
       { maxTokens: 4000 },
     );
-    const status = ex.isPurchase && ex.total ? "parsed" : "ignored";
+    // Payé avec une carte perso : ne concerne pas le compte commun, jamais rattaché ni compté
+    const personal = isPersonalEnding(ex.cardLast4) || mentionsPersonalCard(email.body);
+    const status = !ex.isPurchase || !ex.total ? "ignored" : personal ? "personal" : "parsed";
     db.update(schema.emails)
       .set({ status, extracted: JSON.stringify(ex), error: null })
       .where(eq(schema.emails.id, emailId))
       .run();
+    if (status === "personal") log("email", `Mail #${emailId} : payé sur un compte perso, ignoré`);
     if (status !== "parsed") return;
     const updated = db.select().from(schema.emails).where(eq(schema.emails.id, emailId)).get()!;
     const tx = findTransactionForEmail(updated);

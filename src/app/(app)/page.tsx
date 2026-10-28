@@ -178,6 +178,7 @@ function CategoryRow({ line: l, month }: { line: CategoryLine; month: string }) 
     notes.push(`${formatEUR(Math.max(0, env.remainingToday))} dispo aujourd'hui · +${formatEUR(env.dailyRate)}/jour`);
   }
   if (env?.carryIn) notes.push(`dont ${formatEUR(env.carryIn)} du mois dernier`);
+  if (env?.sales) notes.push(`+${formatEUR(env.sales)} de ventes`);
   if (env && env.transferIn - env.transferOut !== 0) {
     const net = env.transferIn - env.transferOut;
     notes.push(`${net > 0 ? "+" : "−"}${formatEUR(Math.abs(net))} de reports`);

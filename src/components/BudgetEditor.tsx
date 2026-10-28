@@ -60,7 +60,7 @@ export function BudgetEditor({
 
   const budgeted = rows.filter((r) => r.kind === "expense" || r.kind === "savings");
   const income = rows.filter((r) => r.kind === "income");
-  // Une enveloppe ajoutée après l'ouverture de la page (provision privée) garde son budget enregistré
+  // Une enveloppe ajoutée après l'ouverture de la page (budget privé) garde son budget enregistré
   const valueOf = (r: BudgetRow) => values[r.id] ?? String(Math.round(r.monthBudget / 100));
   const total = (kind: string) => budgeted.filter((r) => r.kind === kind).reduce((a, r) => a + (Number(valueOf(r)) || 0), 0);
   const incomeMedian = income.reduce((a, r) => a + r.median, 0) / 100;
@@ -234,7 +234,7 @@ export function BudgetEditor({
       <section className="card space-y-1 text-xs text-muted">
         <p className="font-medium text-text">Règles {rulesActive ? "appliquées" : "appliquées dès le premier enregistrement"}</p>
         <p>On ne dépasse jamais un budget : une dépense qui ne rentre pas attend le lendemain, jusqu&apos;à ce que vous choisissiez sur quoi la reporter (jamais sur 🔒 alimentaire, pharmacie/médecin ou impôts).</p>
-        <p>« au jour » : le budget se débloque jour après jour. « cumul » : ce qui n&apos;est pas dépensé reste sur place (vacances, provisions privées). Pour les autres, le reste du mois part par défaut sur Vêtements &amp; jouets.</p>
+        <p>« au jour » : le budget se débloque jour après jour. « cumul » : ce qui n&apos;est pas dépensé reste sur place (vacances, budgets privés). Pour les autres, le reste du mois part par défaut sur Libre.</p>
         <p>Paiement en plusieurs fois : le total compte le mois de l&apos;achat, sauf des vacances encore à venir qu&apos;on peut payer par parties.</p>
       </section>
 
@@ -284,16 +284,18 @@ function Row({ groupStart, cols, children }: { groupStart: string | null; cols: 
   );
 }
 
-/** Chacun peut s'ajouter une provision dans le privé. */
+/** Chacun a son budget privé, dépensé sur son compte perso : ici on ne suit que le virement qui l'alimente. */
 function ProvisionForm() {
   const [state, action, pending] = useActionState(addProvisionAction, undefined);
   return (
     <form action={action} className="card space-y-2">
-      <h2 className="font-semibold">🔒 Ajouter ma provision privée</h2>
-      <p className="text-xs text-muted">Une enveloppe à vous dans « Vacances, sorties &amp; privé », alimentée chaque mois et qui s&apos;accumule.</p>
+      <h2 className="font-semibold">👤 Ajouter mon budget privé</h2>
+      <p className="text-xs text-muted">
+        Le montant viré chaque mois du compte commun vers votre compte perso. Vos dépenses sur le compte perso
+        n&apos;apparaissent pas ici : seul le virement compte dans ce budget.
+      </p>
       <div className="flex gap-2">
-        <input className="input flex-[2]" name="name" placeholder="Ex : sport, vélo, cadeaux…" required />
-        <input className="input tnum flex-1" name="amount" inputMode="decimal" placeholder="€ / mois" />
+        <input className="input tnum flex-1" name="amount" inputMode="decimal" placeholder="€ / mois" required />
         <button className="btn-primary shrink-0" disabled={pending}>Ajouter</button>
       </div>
       {state?.error && <p className="text-sm text-danger">{state.error}</p>}

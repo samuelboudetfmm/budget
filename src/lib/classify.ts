@@ -72,6 +72,7 @@ export type EmailExtraction = {
   date?: string | null;
   total?: number | null; // euros
   mainCategoryId?: number | null;
+  cardLast4?: string | null;
   items?: { label: string; amount: number; categoryId: number }[];
 };
 
@@ -222,6 +223,8 @@ ${categoriesForPrompt(cats)}
 Règles :
 - Montant négatif = dépense, positif = crédit (revenu, remboursement, virement reçu).
 - Choisis l'id de catégorie le plus probable. Un remboursement reçu va dans la catégorie de la dépense d'origine si évident, sinon "Revenus".
+- L'argent d'une vente d'occasion (Vinted, Leboncoin, eBay…) va dans la catégorie Libre, pas dans Revenus.
+- Un virement du compte commun vers le compte personnel d'un membre va dans le budget privé de ce membre (catégorie qui porte son nom), pas dans "Virements internes".
 - "merchant" : nom lisible et court du commerçant (ex : "Carrefour Market", "SNCF", "Amazon").
 - Pour un commerçant multi-rayons (supermarché, Amazon, Fnac…) sans détail, choisis la catégorie la plus probable et indique-le dans "reason" ; un ticket reçu par mail affinera ensuite.
 - "confidence" entre 0 et 1. En cas de doute, choisis quand même l'hypothèse la plus probable, mets une confiance inférieure à 0.7 et formule l'hypothèse dans "reason" (ex : "Supposé alimentaire : supermarché sans ticket").
@@ -258,6 +261,11 @@ Réponds uniquement en JSON : {"results":[{"id":number,"merchant":string,"catego
   }
 }
 
+// Plateformes de revente entre particuliers : leurs versements alimentent le budget Libre
+const RESALE = /vinted|leboncoin|le bon coin|\bebay\b|beebs|vestiaire collective|selency|momox|label emmaus/i;
+
+export const isResale = (tx: Pick<Transaction, "label" | "merchant">) => RESALE.test(`${tx.label} ${tx.merchant ?? ""}`);
+
 /**
  * Classe les transactions données (non encore classées par l'utilisateur) :
  * 1. ticket reçu par mail, 2. règle apprise, 3. IA par lots.
@@ -280,12 +288,21 @@ async function classifyOnly(ids: number[], opts: { force?: boolean }) {
       .map((r) => r.id),
   );
   const rules = new Map(db.select().from(schema.merchantRules).all().map((r) => [r.merchantKey, r]));
+  const libre = db.select().from(schema.categories).where(eq(schema.categories.code, "libre")).get();
   const forAI: Transaction[] = [];
 
   for (const tx of txs) {
     if (tx.classifiedBy === "user") continue;
     if (classified.has(tx.id) && !opts.force) continue;
     if (matchInstallment(tx)) continue;
+    if (tx.amount > 0 && isResale(tx) && libre) {
+      setSplits(tx.id, [{ categoryId: libre.id, amount: tx.amount }], {
+        classifiedBy: "rule",
+        aiConfidence: 1,
+        aiReason: "Vente d'occasion : l'argent alimente le budget Libre",
+      });
+      continue;
+    }
     const email = findEmailForTransaction(tx);
     if (email && applyEmailToTransaction(email, tx)) continue;
     const rule = rules.get(merchantKey(tx.label)) ?? (tx.merchant ? rules.get(merchantKey(tx.merchant)) : undefined);

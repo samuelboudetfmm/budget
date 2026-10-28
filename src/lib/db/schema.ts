@@ -43,7 +43,7 @@ export const categories = sqliteTable("categories", {
   budget: integer("budget").notNull().default(0),
   // Indication pour l'IA (ex : "supermarché alimentaire uniquement")
   hint: text("hint"),
-  // Identifiant stable des enveloppes par défaut (alimentaire, vetements…)
+  // Identifiant stable des enveloppes par défaut (alimentaire, libre…)
   code: text("code").unique(),
   // Regroupement à l'affichage (ex : "Factures mensuelles")
   groupName: text("group_name"),
@@ -51,7 +51,7 @@ export const categories = sqliteTable("categories", {
   accrual: text("accrual").notNull().default("monthly"),
   // Enveloppe dans laquelle on n'a pas le droit de puiser pour couvrir un dépassement
   locked: integer("locked", { mode: "boolean" }).notNull().default(false),
-  // default : le reste du mois part sur l'enveloppe choisie (vêtements/jouets par défaut) | self : il s'accumule (provision)
+  // default : le reste du mois part sur l'enveloppe choisie (Libre par défaut) | self : il s'accumule (provision)
   rollover: text("rollover").notNull().default("default"),
   // Provision privée d'un membre
   ownerUserId: integer("owner_user_id").references(() => users.id, { onDelete: "set null" }),

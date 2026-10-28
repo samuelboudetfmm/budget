@@ -19,28 +19,30 @@ const DEFAULT_CATEGORIES: NewCategory[] = [
   { code: "emprunt", name: "Emprunt", icon: "🏠", color: "#7c3aed", groupName: GROUP_BILLS, hint: "mensualités de crédit immobilier ou auto, loyer" },
   { code: "energie", name: "Énergie", icon: "⚡", color: "#ca8a04", hint: "électricité, gaz, eau, fioul, bois, carburant" },
   { code: "hygiene", name: "Hygiène", icon: "🧴", color: "#0891b2", hint: "produits d'hygiène et de beauté, ménage, lessive, couches, coiffeur" },
-  { code: "vetements", name: "Vêtements & jouets", icon: "👕", color: "#db2777", accrual: "daily", hint: "vêtements, chaussures, jouets, jeux, livres et loisirs créatifs des enfants" },
+  { code: "libre", name: "Libre (vêtements, jouets…)", icon: "🎈", color: "#db2777", accrual: "daily", hint: "vêtements, chaussures, jouets, jeux, livres, loisirs créatifs, petits plaisirs ; reçoit aussi l'argent des ventes Vinted, Leboncoin, etc." },
   { code: "vacances", name: "Vacances", icon: "🏖️", color: "#0d9488", groupName: GROUP_LEISURE, rollover: "self", hint: "hébergement, billets, location et activités de vacances" },
   { code: "sorties", name: "Sorties", icon: "🍽️", color: "#ea580c", groupName: GROUP_LEISURE, hint: "restaurants, fast-food, cafés, cinéma, parcs, sport, sorties en famille, cadeaux" },
   { code: "imprevu", name: "Imprévu", icon: "🧯", color: "#64748b", hint: "réparations, pannes, électroménager à remplacer, dépenses exceptionnelles non prévues, divers" },
   { code: "epargne", name: "Épargne", icon: "🐷", color: "#059669", kind: "savings", hint: "virements vers livret, assurance-vie, PEA" },
-  { code: "revenus", name: "Revenus", icon: "💶", color: "#15803d", kind: "income", hint: "salaires, allocations, remboursements reçus" },
-  { code: "virements", name: "Virements internes", icon: "🔄", color: "#94a3b8", kind: "transfer", hint: "virements entre nos propres comptes" },
+  { code: "revenus", name: "Revenus", icon: "💶", color: "#15803d", kind: "income", hint: "salaires, allocations, remboursements reçus (pas les ventes Vinted/Leboncoin, qui vont dans Libre)" },
+  { code: "virements", name: "Virements internes", icon: "🔄", color: "#94a3b8", kind: "transfer", hint: "virements entre comptes communs ou vers l'épargne commune (pas les virements vers un compte perso, qui vont dans le budget privé de la personne)" },
   { code: "echeance", name: "Échéance déjà comptée", icon: "🧮", color: "#a8a29e", kind: "transfer", hint: "échéance d'un paiement en plusieurs fois, déjà comptée en totalité le mois de l'achat" },
 ];
 
-const VERSION = 2;
+const VERSION = 3;
 
 export function seed(db: BetterSQLite3Database<typeof schema>) {
   const row = db.select().from(schema.settings).where(eq(schema.settings.key, "categories_version")).get();
   if (row && Number(row.value) >= VERSION) return;
   db.transaction((t) => {
     const existing = t.select().from(schema.categories).all();
-    // Les catégories revenus / épargne / virements de la v1 sont reprises telles quelles
+    // Reprise par code (v2+, renommages compris), sinon par nom (catégories revenus / épargne / virements de la v1)
+    const byCode = new Map(existing.filter((c) => c.code).map((c) => [c.code!, c]));
     const byName = new Map(existing.map((c) => [c.name, c]));
+    const renamed: Record<string, string> = { libre: "vetements" };
     const kept: number[] = [];
     DEFAULT_CATEGORIES.forEach((c, i) => {
-      const old = byName.get(c.name);
+      const old = byCode.get(c.code!) ?? byCode.get(renamed[c.code!] ?? "") ?? byName.get(c.name);
       if (old && old.kind === (c.kind ?? "expense")) {
         t.update(schema.categories).set({ ...c, sortOrder: i, archived: false }).where(eq(schema.categories.id, old.id)).run();
         kept.push(old.id);
@@ -48,7 +50,9 @@ export function seed(db: BetterSQLite3Database<typeof schema>) {
         kept.push(t.insert(schema.categories).values({ ...c, sortOrder: i }).returning().get().id);
       }
     });
-    const obsolete = existing.filter((c) => !kept.includes(c.id)).map((c) => c.id);
+    // Seules les catégories de la v1 sont retirées : celles ajoutées depuis (provisions privées…) restent
+    const fromV1 = !row || Number(row.value) < 2;
+    const obsolete = fromV1 ? existing.filter((c) => !kept.includes(c.id)).map((c) => c.id) : [];
     if (obsolete.length) {
       const used = t
         .select({ id: schema.splits.categoryId })

@@ -7,9 +7,10 @@ Application web installable (PWA) pour gérer le budget familial :
 - **Temps réel** : chaque paiement (iPhone / Android) est envoyé à l'app, classé, puis une **notification push** indique ce qu'il reste dans la catégorie et sur le mois.
 - **Tickets & commandes** : les mails transférés sur une boîte dédiée sont lus (IMAP IDLE, instantané) ; un achat au supermarché ou sur Amazon est réparti ligne par ligne sur plusieurs catégories.
 - **Apprentissage** : chaque correction peut devenir une règle pour le commerçant.
-- **Enveloppes** : Alimentaire, Pharmacie & médecin, Factures mensuelles (Impôts, Téléphone, Internet, Charges, Emprunt), Énergie, Hygiène, Vêtements & jouets, Vacances / Sorties / provisions privées, Imprévu. Suivi au mois ; Vêtements & jouets se débloque **jour après jour**.
+- **Enveloppes** : Alimentaire, Pharmacie & médecin, Factures mensuelles (Impôts, Téléphone, Internet, Charges, Emprunt), Énergie, Hygiène, Libre (vêtements, jouets…), Vacances / Sorties / budgets privés, Imprévu. Suivi au mois ; Libre se débloque **jour après jour** et reçoit l'argent des ventes Vinted, Leboncoin, etc.
 - **On ne dépasse pas** : une dépense qui ne rentre pas est repoussée au lendemain jusqu'à ce qu'on choisisse sur quel budget la reporter (jamais Alimentaire, Pharmacie & médecin, Impôts). Rappel push chaque matin.
-- **Reste du mois** : reporté au choix le mois suivant, par défaut sur Vêtements & jouets (Vacances et provisions privées s'accumulent).
+- **Reste du mois** : reporté au choix le mois suivant, par défaut sur Libre (Vacances et budgets privés s'accumulent).
+- **Compte commun uniquement** : chaque budget privé est le virement vers le compte perso d'un membre ; les paiements signalés (téléphone, mail) avec une carte perso sont ignorés (cartes du compte commun dans Réglages). Ne connectez à Enable Banking que le compte commun.
 - **Paiement en plusieurs fois** : compté en totalité le mois de l'achat (on ne s'endette pas), sauf des vacances encore à venir payées par parties. Détection automatique des libellés 4X / Oney / Alma / Klarna…
 - **À vérifier** : toutes les suppositions (catégorie devinée, ticket absent, paiement fractionné supposé, livraison inconnue) et les hypothèses sur les règles.
 - **Wishlist** : on colle un lien, Playwright lit image et prix ; vendeurs alternatifs ; miniatures avec nom et meilleur prix livraison incluse ; tri par priorité.

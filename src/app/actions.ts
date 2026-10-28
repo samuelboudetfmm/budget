@@ -205,6 +205,17 @@ export async function saveModelAction(_: FormState, form: FormData): Promise<For
   return { ok: `Modèle : ${model}` };
 }
 
+export async function saveJointCardsAction(form: FormData) {
+  await requireUser();
+  const cards = String(form.get("cards") ?? "")
+    .split(/[,;\n]/)
+    .map((c) => c.trim())
+    .filter(Boolean)
+    .slice(0, 20);
+  setSetting("joint_cards", cards);
+  revalidatePath("/settings");
+}
+
 export async function retryEmailAction(id: number) {
   await requireUser();
   await analyzeEmail(id);
@@ -260,27 +271,29 @@ export async function setCarryoverAction(month: string, categoryId: number, targ
 /** Provision privée d'un membre (elle s'accumule de mois en mois). */
 export async function addProvisionAction(_: FormState, form: FormData): Promise<FormState> {
   const user = await requireUser();
-  const name = String(form.get("name") ?? "").trim();
   const amount = parseAmount(String(form.get("amount") ?? "")) ?? 0;
-  if (!name) return { error: "Nom requis." };
+  const mine = db.select().from(schema.categories)
+    .where(and(eq(schema.categories.ownerUserId, user.id), eq(schema.categories.archived, false))).get();
+  if (mine) return { error: `Votre budget privé existe déjà (${mine.name}) : changez son montant dans le tableau.` };
   const last = db.select({ n: sql<number>`max(${schema.categories.sortOrder})` }).from(schema.categories)
     .where(eq(schema.categories.groupName, GROUP_LEISURE)).get();
+  // Le budget privé se dépense sur le compte perso : côté compte commun, on ne voit que le virement qui l'alimente
   db.insert(schema.categories)
     .values({
-      name: `${user.name} · ${name}`,
-      icon: "🔒",
+      name: `Privé · ${user.name}`,
+      icon: "👤",
       color: "#8b5cf6",
       groupName: GROUP_LEISURE,
       rollover: "self",
       ownerUserId: user.id,
       budget: Math.max(0, amount),
-      hint: `dépenses personnelles de ${user.name} : ${name}`,
+      hint: `virement du compte commun vers le compte personnel de ${user.name} (son budget privé)`,
       sortOrder: Number(last?.n ?? 100) + 1,
     })
     .run();
   if (!getSetting<string | null>("rules_start", null)) setSetting("rules_start", currentMonth());
   revalidatePath("/", "layout");
-  return { ok: "Provision ajoutée." };
+  return { ok: "Budget privé ajouté." };
 }
 
 // ---------- Paiement en plusieurs fois ----------

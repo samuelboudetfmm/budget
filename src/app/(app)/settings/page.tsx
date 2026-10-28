@@ -7,6 +7,8 @@ import { activeCategories } from "@/lib/classify";
 import { bankConfigured } from "@/lib/enablebanking";
 import { imapConfigured, imapState } from "@/lib/imap";
 import { getModel } from "@/lib/settings";
+import { jointCards } from "@/lib/joint";
+import { saveJointCardsAction } from "@/app/actions";
 import { PushToggle } from "@/components/PushToggle";
 import { AddMemberForm, BankConnect, CategoryForm, CopyField, ModelForm, SyncButton } from "@/components/SettingsForms";
 import {
@@ -67,7 +69,7 @@ export default async function SettingsPage({ searchParams }: PageProps<"/setting
           <summary className="cursor-pointer font-medium">📱 iPhone (Apple Pay) — app Raccourcis</summary>
           <ol className="mt-2 list-decimal space-y-1 pl-5">
             <li>App <strong>Raccourcis</strong> → onglet <strong>Automatisation</strong> → <strong>+</strong> → <strong>Transaction</strong>.</li>
-            <li>Choisissez vos cartes Wallet, cochez « Lors du paiement », puis <strong>Exécuter immédiatement</strong>.</li>
+            <li>Choisissez la ou les cartes du <strong>compte commun</strong> uniquement, cochez « Lors du paiement », puis <strong>Exécuter immédiatement</strong>.</li>
             <li>Nouveau raccourci vide → action <strong>Obtenir le contenu de l&apos;URL</strong> : collez le lien ci-dessus.</li>
             <li>
               Touchez « Afficher plus » : Méthode <strong>POST</strong>, Corps de la requête <strong>JSON</strong>, ajoutez les champs :
@@ -82,7 +84,7 @@ export default async function SettingsPage({ searchParams }: PageProps<"/setting
           <summary className="cursor-pointer font-medium">🤖 Android — app MacroDroid (gratuite)</summary>
           <ol className="mt-2 list-decimal space-y-1 pl-5">
             <li>Installez <strong>MacroDroid</strong> depuis le Play Store et autorisez l&apos;accès aux notifications.</li>
-            <li>Nouvelle macro → Déclencheur <strong>Notification reçue</strong> → choisissez l&apos;app de votre banque (et/ou Google Wallet).</li>
+            <li>Nouvelle macro → Déclencheur <strong>Notification reçue</strong> → choisissez l&apos;app de la banque du <strong>compte commun</strong> (et/ou Google Wallet).</li>
             <li>
               Action <strong>Requête HTTP</strong> : méthode <strong>POST</strong>, URL = le lien ci-dessus, corps <strong>JSON</strong> :
               <code className="mt-1 block rounded bg-surface p-2 text-xs">{`{"text": "[notification_title] [notification]", "app": "[app_name]"}`}</code>
@@ -91,6 +93,26 @@ export default async function SettingsPage({ searchParams }: PageProps<"/setting
           </ol>
           <p className="mt-2 text-xs text-muted">Activez les notifications de paiement dans l&apos;app de votre banque si ce n&apos;est pas déjà fait.</p>
         </details>
+      </Section>
+
+      <Section id="compte-commun" title="Compte commun uniquement">
+        <p className="text-sm text-muted">
+          L&apos;app ne suit que le compte commun. Les budgets privés se dépensent sur vos comptes perso : seul le virement du compte commun vers
+          chaque compte perso compte ici. Indiquez les cartes du compte commun : un paiement signalé par le téléphone ou par un mail avec une
+          autre carte est ignoré.
+        </p>
+        <form action={saveJointCardsAction} className="flex gap-2">
+          <input
+            className="input flex-1"
+            name="cards"
+            defaultValue={jointCards().join(", ")}
+            placeholder="4 derniers chiffres ou nom de la carte dans Wallet, séparés par des virgules (ex : 1234, Visa commune)"
+          />
+          <button className="btn-primary shrink-0">Enregistrer</button>
+        </form>
+        {jointCards().length === 0 && (
+          <p className="text-xs text-warn">Aucune carte indiquée : tous les paiements signalés sont supposés faits sur le compte commun.</p>
+        )}
       </Section>
 
       <Section id="banque" title="Banque (lecture seule)">

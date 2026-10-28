@@ -98,7 +98,7 @@ function OverrunLine({ row, cat, sources }: { row: OverrunRow; cat: Map<number, 
   );
 }
 
-/** Le reste non dépensé du mois précédent : par défaut sur vêtements/jouets, ou au choix. */
+/** Le reste non dépensé du mois précédent : par défaut sur Libre, ou au choix. */
 export function CarryoverCard({
   month,
   rows,

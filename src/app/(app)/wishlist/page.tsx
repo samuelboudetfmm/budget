@@ -18,7 +18,7 @@ export default async function WishlistPage({ searchParams }: PageProps<"/wishlis
     <Wishlist
       items={listWishes()}
       categories={categories}
-      defaultCategoryId={categoryByCode("vetements")?.id ?? null}
+      defaultCategoryId={categoryByCode("libre")?.id ?? null}
       openId={Number(sp.open) || undefined}
     />
   );

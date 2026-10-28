@@ -9,8 +9,9 @@ import { getSetting } from "./settings";
  * - une enveloppe ne peut jamais être dépassée : une dépense qui ne rentre pas est
  *   « reportée au lendemain » jusqu'à ce qu'elle rentre (déblocage quotidien, nouveau mois)
  *   ou qu'un report depuis une autre enveloppe la couvre ;
- * - les enveloppes "daily" (vêtements/jouets) se débloquent jour après jour ;
- * - ce qui reste à la fin du mois part sur l'enveloppe choisie (vêtements/jouets par défaut),
+ * - les enveloppes "daily" (Libre : vêtements, jouets…) se débloquent jour après jour ;
+ * - l'argent des ventes d'occasion classé dans Libre s'ajoute à ce qui est disponible le jour même ;
+ * - ce qui reste à la fin du mois part sur l'enveloppe choisie (Libre par défaut),
  *   ou reste sur place pour les provisions (vacances, privé).
  */
 
@@ -20,7 +21,8 @@ export type EnvelopeMonth = {
   carryIn: number; // reste du mois précédent reçu
   transferIn: number;
   transferOut: number;
-  monthAvailable: number; // alloc + carryIn + transferIn - transferOut
+  sales: number; // ventes d'occasion reçues (enveloppe Libre)
+  monthAvailable: number; // alloc + carryIn + transferIn - transferOut + sales
   availableToday: number; // ce qui est débloqué à ce jour (= monthAvailable sauf enveloppes "daily")
   spent: number; // dépenses comptées ce mois (nettes des remboursements)
   deferred: number; // dépenses en attente de report
@@ -83,7 +85,7 @@ type Item = { splitId: number; transactionId: number; categoryId: number; usage:
 export function computeEnvelopes(asOf = today()): EnvelopeState {
   const start = rulesStart();
   const cats = budgetCategories();
-  const defaultTargetId = cats.find((c) => c.code === "vetements")?.id ?? null;
+  const defaultTargetId = cats.find((c) => c.code === "libre")?.id ?? null;
   const state: EnvelopeState = {
     active: Boolean(start),
     start,
@@ -148,20 +150,23 @@ export function computeEnvelopes(asOf = today()): EnvelopeState {
       const tout = monthTransfers.filter((t) => t.fromCategoryId === c.id);
       const sumUpTo = (list: typeof tin, d: number) =>
         list.filter((t) => Number(t.date.slice(8)) <= d).reduce((a, t) => a + t.amount, 0);
+      const own = monthItems.filter((i) => i.categoryId === c.id);
+      // Libre : un crédit (vente Vinted, Leboncoin…) est une rentrée d'argent, pas une dépense négative
+      const sales = c.code === "libre" ? own.filter((i) => i.usage < 0) : [];
+      const salesUpTo = (d: number) => sales.filter((i) => Number(i.date.slice(8)) <= d).reduce((a, i) => a - i.usage, 0);
       const accrued = (d: number) => (c.accrual === "daily" ? Math.floor((alloc * d) / days) : alloc);
       // g(d) = disponible le jour d, reports sortants déduits ; une dépense passée le jour D
       // doit tenir sous le minimum de g sur [D, dernier jour] pour ne jamais créer de dépassement plus tard
-      const g = Array.from({ length: lastIdx + 1 }, (_, d) => carryIn + accrued(d) + sumUpTo(tin, d) - sumUpTo(tout, d));
+      const g = Array.from({ length: lastIdx + 1 }, (_, d) => carryIn + accrued(d) + salesUpTo(d) + sumUpTo(tin, d) - sumUpTo(tout, d));
       const suffixMin = [...g];
       for (let d = lastIdx - 1; d >= 1; d--) suffixMin[d] = Math.min(suffixMin[d], suffixMin[d + 1]);
 
       const pending = queue.get(c.id)!;
-      const own = monthItems.filter((i) => i.categoryId === c.id);
       let spent = 0;
       for (let d = 1; d <= lastIdx; d++) {
         const date = `${month}-${String(d).padStart(2, "0")}`;
         for (const it of own) {
-          if (it.date !== date) continue;
+          if (it.date !== date || sales.includes(it)) continue;
           // Remboursement : redonne de la marge immédiatement
           if (it.usage <= 0) spent += it.usage;
           else pending.push(it);
@@ -178,7 +183,8 @@ export function computeEnvelopes(asOf = today()): EnvelopeState {
 
       const tIn = sumUpTo(tin, lastIdx);
       const tOut = sumUpTo(tout, lastIdx);
-      const monthAvailable = alloc + carryIn + tIn - tOut;
+      const sold = salesUpTo(lastIdx);
+      const monthAvailable = alloc + carryIn + tIn - tOut + sold;
       const availableToday = g[lastIdx];
       result.set(c.id, {
         categoryId: c.id,
@@ -186,6 +192,7 @@ export function computeEnvelopes(asOf = today()): EnvelopeState {
         carryIn,
         transferIn: tIn,
         transferOut: tOut,
+        sales: sold,
         monthAvailable,
         availableToday,
         spent,

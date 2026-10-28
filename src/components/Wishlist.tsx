@@ -117,7 +117,7 @@ function WishSheet({ item, categories, onClose }: { item: WishWithLinks; categor
       router.refresh();
     });
 
-  // Dans le budget aujourd'hui ? Sinon, combien de jours de déblocage (vêtements/jouets)
+  // Dans le budget aujourd'hui ? Sinon, combien de jours de déblocage (Libre)
   let budgetInfo: string | null = null;
   if (cat && item.bestTotal != null) {
     if (cat.free >= item.bestTotal) budgetInfo = `✓ Rentre aujourd'hui dans ${cat.name} (libre ${formatEUR(cat.free)})`;
