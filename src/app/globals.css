@@ -1,0 +1,77 @@
+@import "tailwindcss";
+
+:root {
+  --bg: #f6f7f9;
+  --surface: #ffffff;
+  --surface-2: #f1f3f6;
+  --border: #e3e6eb;
+  --text: #14171c;
+  --muted: #667085;
+  --accent: #0f766e;
+  --accent-soft: #ccfbf1;
+  --danger: #dc2626;
+  --danger-soft: #fee2e2;
+  --warn: #d97706;
+  --ok: #16a34a;
+}
+
+@media (prefers-color-scheme: dark) {
+  :root {
+    --bg: #0d1013;
+    --surface: #161a1f;
+    --surface-2: #1d2228;
+    --border: #2a3038;
+    --text: #e8ebef;
+    --muted: #94a0ae;
+    --accent: #2dd4bf;
+    --accent-soft: #123b37;
+    --danger: #f87171;
+    --danger-soft: #3b1717;
+    --warn: #fbbf24;
+    --ok: #4ade80;
+  }
+}
+
+@theme inline {
+  --color-bg: var(--bg);
+  --color-surface: var(--surface);
+  --color-surface-2: var(--surface-2);
+  --color-border: var(--border);
+  --color-text: var(--text);
+  --color-muted: var(--muted);
+  --color-accent: var(--accent);
+  --color-accent-soft: var(--accent-soft);
+  --color-danger: var(--danger);
+  --color-danger-soft: var(--danger-soft);
+  --color-warn: var(--warn);
+  --color-ok: var(--ok);
+  --font-sans: var(--font-inter), system-ui, sans-serif;
+}
+
+body {
+  background: var(--bg);
+  color: var(--text);
+  -webkit-tap-highlight-color: transparent;
+}
+
+@utility card {
+  @apply rounded-2xl border border-border bg-surface p-4;
+}
+@utility btn {
+  @apply inline-flex items-center justify-center gap-2 rounded-xl px-4 py-2.5 text-sm font-medium transition active:scale-[.98] disabled:opacity-50;
+}
+@utility btn-primary {
+  @apply btn bg-accent text-white dark:text-black;
+}
+@utility btn-ghost {
+  @apply btn border border-border bg-surface hover:bg-surface-2;
+}
+@utility input {
+  @apply w-full rounded-xl border border-border bg-surface px-3 py-2.5 text-base outline-none focus:border-accent sm:text-sm;
+}
+@utility label {
+  @apply mb-1 block text-xs font-medium text-muted;
+}
+@utility tnum {
+  font-variant-numeric: tabular-nums;
+}

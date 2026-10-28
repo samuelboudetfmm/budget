@@ -1,0 +1,23 @@
+services:
+  web:
+    build: .
+    restart: unless-stopped
+    # Même utilisateur que l'hôte : ./data reste modifiable sans sudo (ex. pour y déposer la clé bancaire)
+    user: "2003:2003"
+    ports:
+      - "8340:3000"
+    env_file: .env
+    environment:
+      APP_URL: https://budget.samuelboudet.com
+      SCRAPER_URL: http://scraper:3000
+    volumes:
+      - ./data:/app/data
+    depends_on:
+      - scraper
+
+  # Chromium (Playwright) pour lire image et prix des liens de la wishlist ; non exposé
+  scraper:
+    build: ./scraper
+    restart: unless-stopped
+    init: true
+    ipc: host
